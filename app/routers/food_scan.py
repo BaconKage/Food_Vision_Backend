@@ -53,7 +53,7 @@ async def upload_food_scan(
         unique_foods = deduplicate_ai_foods(model_payload.foods)
         validate_confident_foods(unique_foods)
 
-        prepared_foods = prepare_foods(unique_foods)
+        prepared_foods = prepare_foods(unique_foods, created_by_oid)
         mealplan_id, for_date, added_items = upsert_mealplan(
             created_for_oid=created_for_oid,
             created_by_oid=created_by_oid,

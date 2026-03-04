@@ -82,35 +82,41 @@ def _format_number_str(value: float) -> str:
     return f"{value:.2f}".rstrip("0").rstrip(".")
 
 
-def _find_or_create_food(item: AIFoodItem, now: datetime, foods_col: Collection) -> ObjectId:
+def _find_or_create_food(item: AIFoodItem, created_by_oid: ObjectId, foods_col: Collection) -> ObjectId:
     escaped = re.escape(item.name.strip())
     existing = foods_col.find_one({"name": {"$regex": f"^{escaped}$", "$options": "i"}}, {"_id": 1, "name": 1})
     if existing:
         return existing["_id"]
 
     food_doc = {
-        "name": item.name.strip(),
-        "nutrition": {
-            "calories": float(item.calories),
-            "protein_g": float(item.protein_g),
-            "carbs_g": float(item.carbs_g),
-            "fats_g": float(item.fats_g),
-            "weight_g": float(item.weight_g),
-        },
-        "created_at": now,
-        "updated_at": now,
+        "description": "AI detected food",
+        "carbs": _format_number_str(float(item.carbs_g or 0)),
+        "cals": _format_number_str(float(item.calories or 0)),
+        "protein": _format_number_str(float(item.protein_g or 0)),
+        "weight": _format_number_str(float(item.weight_g or 100)),
+        "others": "",
+        "unit": "Grams",
+        "name": item.name.strip().title(),
+        "type": "Vegetarian",
+        "is_private": False,
+        "created_by": created_by_oid,
+        "last_modified_by": created_by_oid,
+        "__v": 0,
+        "updated_at": 0,
+        "created_at": 0,
+        "created_by_trainer": created_by_oid,
+        "image": "",
     }
     result = foods_col.insert_one(food_doc)
     return result.inserted_id
 
 
-def prepare_foods(items: List[AIFoodItem]) -> List[PreparedFood]:
-    now = datetime.now(UTC)
+def prepare_foods(items: List[AIFoodItem], created_by_oid: ObjectId) -> List[PreparedFood]:
     foods_col = foods_collection()
     output: List[PreparedFood] = []
 
     for item in items:
-        food_oid = _find_or_create_food(item, now, foods_col)
+        food_oid = _find_or_create_food(item, created_by_oid, foods_col)
         output.append(
             PreparedFood(
                 food_oid=food_oid,
